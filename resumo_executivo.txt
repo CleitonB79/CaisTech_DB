@@ -1,0 +1,13 @@
+RESUMO EXECUTIVO - CAIS TECH
+==================================================
+Clientes ativos: 3
+MRR (Receita Mensal): R$ 1791.00
+
+Distribuição por plano:
+  • Básico: 1 clientes (R$ 297.00)
+  • Enterprise: 1 clientes (R$ 997.00)
+  • Profissional: 1 clientes (R$ 497.00)
+
+Próximas metas:
+  • +1 cliente Enterprise: R$ 2788.00/mês
+  • +2 clientes Profissional: R$ 2785.00/mês
