@@ -1,0 +1,4 @@
+id,nome_empresa,email,plano,ativo,valor_mensal,telefone
+1,Transportadora Expresso SC,joao@expressosc.com.br,Profissional,1,497,None
+2,Contabilidade Total,maria@contabilidadetotal.com,Básico,1,297,None
+3,Loja Tech Sul,carlos@techsul.com.br,Enterprise,1,997,None

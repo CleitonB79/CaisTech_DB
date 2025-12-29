@@ -42,3 +42,22 @@ SELECT
 FROM clientes c
 LEFT JOIN servicos_contratados s ON c.id = s.cliente_id
 GROUP BY c.id;
+
+1. Adicionar coluna 'ativo' na tabela clientes
+ALTER TABLE clientes ADD COLUMN ativo BOOLEAN DEFAULT 1;
+
+-- 2. Criar tabela de faturas
+CREATE TABLE IF NOT EXISTS faturas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    cliente_id INTEGER,
+    valor DECIMAL(10,2),
+    data_vencimento DATE,
+    status TEXT CHECK(status IN ('pendente', 'paga', 'atrasada')),
+    FOREIGN KEY (cliente_id) REFERENCES clientes(id)
+);
+
+-- 3. Inserir faturas de exemplo
+INSERT INTO faturas (cliente_id, valor, data_vencimento, status) VALUES
+(1, 497.00, '2025-01-10', 'pendente'),
+(2, 297.00, '2025-01-10', 'pendente'),
+(3, 997.00, '2025-01-10', 'pendente');

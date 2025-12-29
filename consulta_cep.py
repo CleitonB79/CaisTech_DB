@@ -1,14 +1,38 @@
 # ============================================
 # CONSULTA VIACEP + INTEGRAÇÃO CAIS TECH
 # ============================================
+import sys
+import csv
 import os
 import requests
 import json
 import sqlite3
 from datetime import datetime
 
+# limpar_duplicatas.py
+import sqlite3
+
+conexao = sqlite3.connect('caistech.db')
+cursor = conexao.cursor()
+
+# Manter apenas o endereço mais recente de cada cliente+CEP
+cursor.execute('''
+    DELETE FROM enderecos 
+    WHERE id NOT IN (
+        SELECT MIN(id) 
+        FROM enderecos 
+        GROUP BY cliente_id, cep
+    )
+''')
+
+linhas_removidas = cursor.rowcount
+conexao.commit()
+conexao.close()
+
+print(f"✅ {linhas_removidas} registros duplicados removidos!")
+print("   Mantido apenas o endereço mais recente de cada cliente.")
+
 # Adicione no início do arquivo para ver mais detalhes
-import sys
 print(f"Python version: {sys.version}")
 print(f"Current directory: {os.getcwd()}")
 
@@ -59,58 +83,53 @@ def salvar_json(dados, nome_arquivo="endereco_cliente.json"):
     return False
 
 
-def integrar_com_banco_caistech(dados_cep, cliente_id=1):
+ddef integrar_com_banco_caistech(dados_cep, cliente_id=1):
     """
     Integra os dados do CEP com o banco da Cais Tech.
-    Cria uma nova tabela 'enderecos' se não existir.
+    VERIFICA se o endereço já existe antes de inserir.
     """
     try:
-        # Conectar ao banco de dados (o mesmo que criamos)
         conexao = sqlite3.connect('caistech.db')
         cursor = conexao.cursor()
 
-        # Criar tabela de endereços se não existir
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS enderecos (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                cliente_id INTEGER,
-                cep TEXT NOT NULL,
-                logradouro TEXT,
-                bairro TEXT,
-                cidade TEXT,
-                estado TEXT,
-                data_consulta DATE DEFAULT (date('now')),
-                FOREIGN KEY (cliente_id) REFERENCES clientes(id)
-            )
-        ''')
+        # Código existente para criar tabela...
 
-        # Inserir os dados do CEP
+        # VERIFICAR SE JÁ EXISTE este CEP para este cliente
         cursor.execute('''
-            INSERT INTO enderecos 
-            (cliente_id, cep, logradouro, bairro, cidade, estado)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (
-            cliente_id,
-            dados_cep['cep'],
-            dados_cep.get('logradouro', ''),
-            dados_cep.get('bairro', ''),
-            dados_cep.get('localidade', ''),
-            dados_cep.get('uf', '')
-        ))
+            SELECT id FROM enderecos 
+            WHERE cliente_id = ? AND cep = ?
+        ''', (cliente_id, dados_cep['cep']))
+
+        existe = cursor.fetchone()
+
+        if existe:
+            print(
+                f"⚠️  Endereço já cadastrado (ID: {existe[0]}). Atualizando data...")
+            # Atualizar apenas a data
+            cursor.execute('''
+                UPDATE enderecos 
+                SET data_consulta = date('now')
+                WHERE id = ?
+            ''', (existe[0],))
+        else:
+            # INSERIR NOVO (código original)
+            cursor.execute('''
+                INSERT INTO enderecos 
+                (cliente_id, cep, logradouro, bairro, cidade, estado)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (
+                cliente_id,
+                dados_cep['cep'],
+                dados_cep.get('logradouro', ''),
+                dados_cep.get('bairro', ''),
+                dados_cep.get('localidade', ''),
+                dados_cep.get('uf', '')
+            ))
+            print("✅ NOVO endereço cadastrado!")
 
         conexao.commit()
-        print("✅ Dados integrados ao banco da Cais Tech!")
 
-        # Mostrar o que foi inserido
-        cursor.execute('''
-            SELECT c.nome_empresa, e.cep, e.cidade, e.estado 
-            FROM enderecos e
-            JOIN clientes c ON e.cliente_id = c.id
-            WHERE e.id = last_insert_rowid()
-        ''')
-        resultado = cursor.fetchone()
-        print(f"   📍 Cliente: {resultado[0]}")
-        print(f"   📍 Endereço: {resultado[1]} - {resultado[2]}/{resultado[3]}")
+        # Resto do código para mostrar resultados...
 
         conexao.close()
         return True
@@ -205,6 +224,8 @@ ceps_teste = ["88036000", "01001000", "20040002"]
 dados_multiplos = consultar_multiplos_ceps(ceps_teste)
 
 # FUNÇÃO NOVA: Consultar CEP a partir do nome da cidade
+
+
 def consultar_por_cidade_estado(cidade, estado):
     """Consulta CEPs por cidade/UF"""
     url = f"https://viacep.com.br/ws/{estado}/{cidade}/json/"
@@ -213,8 +234,10 @@ def consultar_por_cidade_estado(cidade, estado):
         return resposta.json()  # Retorna lista de CEPs
     return None
 
+
 # FUNÇÃO NOVA: Exportar dados para CSV (além do JSON)
-import csv
+
+
 def exportar_para_csv(dados, nome_arquivo="enderecos_clientes.csv"):
     """Exporta dados para planilha CSV"""
     with open(nome_arquivo, 'w', newline='', encoding='utf-8') as arquivo:
@@ -222,6 +245,7 @@ def exportar_para_csv(dados, nome_arquivo="enderecos_clientes.csv"):
         escritor.writeheader()
         escritor.writerows(dados)
     print(f"📊 Dados exportados para CSV: {nome_arquivo}")
+
 
 # TESTE: No final do script, adicione:
 print("\n🔍 CONSULTA AVANÇADA: CEPs de Florianópolis/SC")
