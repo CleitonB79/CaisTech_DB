@@ -67,3 +67,15 @@ FROM clientes c
 JOIN servicos_contratados s ON c.id = s.cliente_id
 GROUP BY c.id
 HAVING qtd_servicos > 1;
+
+## 🔗 Integração com APIs Externas
+
+### 📍 Consulta de CEPs Automatizada
+Script Python que consulta a API ViaCEP, salva em JSON e integra com banco SQLite.
+
+**Funcionalidades:**
+- Consulta de CEP individual e em massa
+- Salvamento automático em JSON e integração com SQLite
+- Tratamento de erros e timeout
+
+**Tecnologias:** Python, Requests, SQLite, JSON
